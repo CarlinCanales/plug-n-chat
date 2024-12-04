@@ -1,14 +1,29 @@
 <script setup>
 import Avatar from '../components/Avatar.vue';
+
+const FAUX_ID = Math.random();
+const EMIT_CHAT_CLICKED = 'chatClicked';
+
+const {name} = defineProps({
+  name: String
+})
+
+const emits = defineEmits([ EMIT_CHAT_CLICKED ]);
+
+function handleChatClick(e) {
+  e.stopPropagation();
+  emits(EMIT_CHAT_CLICKED, {id: FAUX_ID, name});
+}
+
 </script>
 <template>
-  <article>
+  <article @click="handleChatClick">
     <aside>
       <Avatar/>
     </aside>
     <section>
       <div>
-        <span>Beatriz Canales</span>
+        <span>{{ name }}</span>
         <time>Yesterday</time>
       </div>
       <div>

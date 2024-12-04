@@ -1,22 +1,39 @@
 <script setup>
+import { ref } from 'vue';
 import Avatar from "~/components/Avatar.vue";
 
-const {title, isOpen} = defineProps({
+const {title, handleClick, useClose = false, handleClose} = defineProps({
   title: String,
-  isOpen: Boolean,
-  handleClick: Function
+  useClose: Boolean,
+  handleClick: Function,
+  handleClose: Function
 });
+
+const isOpen = ref(false);
+
+function toggleAndPerformAction() {
+  isOpen.value = !isOpen.value;
+  handleClick();
+}
+
+function closeChat(e) {
+  e.stopPropagation();
+  handleClose();
+}
 
 </script>
 <template>
-  <header @click="handleClick">
+  <header @click="toggleAndPerformAction">
     <div>
       <Avatar/>
     </div>
     <div>
       {{ title }}
     </div>
-    <div>
+    <div v-if="useClose">
+      <Icon @click="closeChat" name="material-symbols:close"/>
+    </div>
+    <div v-if="!useClose">
       <Icon v-if="isOpen" name="line-md:chevron-down"/>
       <Icon v-if="!isOpen" name="line-md:chevron-up"/>
     </div>

@@ -1,9 +1,25 @@
 <script setup>
 import Header from "~/components/Header.vue";
+
+function getParam(param) {
+  const params = new URLSearchParams(window.location.search);
+  return params.get(param);
+}
+
+function handleClick() {
+  const id = getParam('id')
+  window.parent.postMessage({message: 'toggle chat', source: 'chatify', id}, '*');
+}
+
+function handleClose() {
+  const id = getParam('id')
+  window.parent.postMessage({message: 'close chat', source: 'chatify', id}, '*');
+}
+
 </script>
 <template>
   <section>
-    <Header title="Single Chat"/>
+    <Header :handle-close="handleClose" use-close :handle-click="handleClick" title="Single Chat"/>
     <div>
       <ul>
         <li class="divider">
