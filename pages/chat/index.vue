@@ -17,10 +17,12 @@ if (socket.connected) {
   onConnect();
 }
 
+socket.on("connect", onConnect);
+socket.on("disconnect", onDisconnect);
+
 function onConnect() {
   isConnected.value = true;
   transport.value = socket.io.engine.transport.name;
-  console.log('id', socket.id);
 
   socket.io.engine.on("upgrade", (rawTransport) => {
     transport.value = rawTransport.name;
@@ -35,9 +37,6 @@ function onDisconnect() {
   isConnected.value = false;
   transport.value = "N/A";
 }
-
-socket.on("connect", onConnect);
-socket.on("disconnect", onDisconnect);
 
 
 function getParam(param) {
