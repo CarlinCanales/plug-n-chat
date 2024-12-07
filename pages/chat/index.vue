@@ -1,5 +1,44 @@
 <script setup>
+import { io } from "socket.io-client";
 import Header from "~/components/Header.vue";
+
+const socket = io();
+const isConnected = ref(false);
+const transport = ref("N/A");
+const id = ref(0);
+const messages = ref([]);
+const inputRef = ref(null);
+
+onMounted(() => {
+  id.value = getParam('id');
+})
+
+if (socket.connected) {
+  onConnect();
+}
+
+function onConnect() {
+  isConnected.value = true;
+  transport.value = socket.io.engine.transport.name;
+  console.log('id', socket.id);
+
+  socket.io.engine.on("upgrade", (rawTransport) => {
+    transport.value = rawTransport.name;
+  });
+  socket.on('received-message', (message) => {
+    console.log('received message', message);
+    messages.value.push({received: true, message});
+  })
+}
+
+function onDisconnect() {
+  isConnected.value = false;
+  transport.value = "N/A";
+}
+
+socket.on("connect", onConnect);
+socket.on("disconnect", onDisconnect);
+
 
 function getParam(param) {
   const params = new URLSearchParams(window.location.search);
@@ -7,14 +46,23 @@ function getParam(param) {
 }
 
 function handleClick() {
-  const id = getParam('id')
-  window.parent.postMessage({message: 'toggle chat', source: 'chatify', id}, '*');
+  window.parent.postMessage({message: 'toggle chat', source: 'chatify', id: id.value}, '*');
 }
 
 function handleClose() {
-  const id = getParam('id')
-  window.parent.postMessage({message: 'close chat', source: 'chatify', id}, '*');
+  window.parent.postMessage({message: 'close chat', source: 'chatify', id: id.value}, '*');
 }
+
+function sendMessage() {
+  console.log('seding message');
+  messages.value.push({received: false, message: inputRef.value.value});
+  socket.emit('message', inputRef.value.value);
+}
+
+onBeforeUnmount(() => {
+  socket.off("connect", onConnect);
+  socket.off("disconnect", onDisconnect);
+});
 
 </script>
 <template>
@@ -22,31 +70,16 @@ function handleClose() {
     <Header :handle-close="handleClose" use-close :handle-click="handleClick" title="Single Chat"/>
     <div>
       <ul>
-        <li class="divider">
-          <span>Yesterday</span>
-        </li>
-        <li class="left">
-          <div>Message from friend</div>
-        </li>
-        <li class="right">
-          <div>Response to friend</div>
-        </li>
-        <li class="divider">
-          <span>Today</span>
-        </li>
-        <li class="left">
-          <div>Message from friend</div>
-        </li>
-        <li class="right">
-          <div>Response to friend</div>
+        <li :class="{'left': message.received, 'right': !message.received}" v-for="message in messages">
+          <div>{{ message.message }}</div>
         </li>
       </ul>
     </div>
     <footer>
       <div>
-        <textarea/>
+        <textarea ref="inputRef"/>
       </div>
-      <div>
+      <div @click="sendMessage">
         <Icon size="2rem" name="material-symbols:send"/>
       </div>
     </footer>
@@ -131,6 +164,12 @@ footer {
 
   textarea {
     padding: .2rem;
+  }
+
+  div {
+    &:last-child:hover {
+      cursor: pointer;
+    }
   }
 }
 </style>
