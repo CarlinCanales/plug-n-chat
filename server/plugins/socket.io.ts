@@ -1,5 +1,5 @@
 import {Server as Engine} from "engine.io";
-import {Server, Socket} from "socket.io";
+import {Server} from "socket.io";
 import {defineEventHandler} from "h3";
 import {NitroApp} from "nitropack/types";
 import names from './names.json';
@@ -15,24 +15,24 @@ export default defineNitroPlugin((nitroApp: NitroApp) => {
     const engine = new Engine();
     const io = new Server();
 
-    const currentUsers: { id: Socket['id'], name: string }[] = [];
+    const currentUsers: Map<string, { userId: string, name: string, isConnected: boolean }> = new Map();
 
     io.bind(engine);
 
-    io.on('connect', (socket) => {
-        io.emit('current users', currentUsers);
-    })
     io.on("connection", (socket) => {
-        const newUser = {id: socket.id, name: getRandomName()};
-        currentUsers.push(newUser);
-        io.emit('new user', newUser);
+        io.emit('current users', Array.from(currentUsers, ([_, value]) => value));
+
+        const userId = socket.handshake.query.id as string;
+        if (userId && currentUsers.has(userId)) {
+            io.emit('new user', currentUsers.get(userId));
+        } else {
+            const newUser = {userId, isConnected: true, name: getRandomName()};
+            currentUsers.set(newUser.userId, newUser);
+            io.emit('new user', newUser);
+        }
+
         socket.on('message', (message) => {
-            console.log('message:', message);
             socket.broadcast.emit('received-message', message);
-        })
-        socket.on("disconnect", () => {
-            socket.broadcast.emit('user disconnected', currentUsers.find(currentUser => currentUser.id === socket.id));
-            currentUsers.splice(currentUsers.indexOf(newUser), 1);
         })
     });
 

@@ -1,37 +1,42 @@
 <script setup>
 import { io } from 'socket.io-client';
+import { onMounted } from "vue";
 import Header from "~/components/Header.vue";
 import Contact from '../../components/Contact.vue';
 
-const socket = io();
-const currentUsers = ref([]);
+const currentUsers = ref(new Map());
 const me = ref(undefined);
 
-if (socket.connected) {
-  onConnect();
-}
+onMounted(() => {
+  const params = new URLSearchParams(window.location.search);
+  const userId = params.get('id');
+  const socket = io(window.location.host, {query: {id: userId}});
+  if (socket.connected) {
+    onConnect();
+  }
 
-function onConnect() {
-  socket.on('current users', (users) => {
-    console.log('users', users);
-    currentUsers.value = [ ...users.filter(user => user.id !== socket.id) ];
-    console.log('current list of users', currentUsers.value);
-  })
-  socket.on('new user', (newUser) => {
-    console.log('new user added', currentUsers.value);
-    const isMe = newUser.id === socket.id;
-    if (isMe) {
-      me.value = newUser;
-    } else {
-      currentUsers.value.push(newUser);
-    }
-  })
-  socket.on('user disconnected', (disconnectedUser) => {
-    currentUsers.value = currentUsers.value.filter(user => user.id !== disconnectedUser.id);
-  })
-}
+  function onConnect() {
+    socket.on('current users', (users) => {
+      currentUsers.value = [ ...users.filter(user => user.userId !== userId) ];
+    })
+    socket.on('new user', (newUser) => {
+      const isMe = newUser.userId === userId;
+      if (isMe) {
+        me.value = newUser;
+        return
+      }
 
-socket.on("connect", onConnect);
+      if (!currentUsers.value.find(u => u.userId === newUser.userId)) {
+        currentUsers.value.push(newUser);
+      }
+    })
+    socket.on('user disconnected', (disconnectedUser) => {
+      currentUsers.value = currentUsers.value.filter(user => user.id !== disconnectedUser.id);
+    })
+  }
+
+  socket.on("connect", onConnect);
+});
 
 function handleClick() {
   window.parent.postMessage({message: 'toggle dashboard', source: 'chatify'}, '*');
@@ -40,6 +45,7 @@ function handleClick() {
 function createNewSingleChat(props) {
   window.parent.postMessage({message: 'create new single chat', source: 'chatify', props}, '*');
 }
+
 
 </script>
 <template>
