@@ -85,7 +85,7 @@ function sendMessage() {
     </div>
     <footer>
       <div>
-        <textarea ref="inputRef"/>
+        <textarea @keydown.meta.enter="sendMessage" ref="inputRef"/>
       </div>
       <div @click="sendMessage">
         <Icon size="2rem" name="material-symbols:send"/>
