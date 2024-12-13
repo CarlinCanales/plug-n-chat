@@ -4,13 +4,13 @@ import { onMounted } from "vue";
 import Header from "~/components/Header.vue";
 import Contact from '../../components/Contact.vue';
 
-const currentUsers = ref(new Map());
+const currentUsers = ref([]);
 const me = ref(undefined);
 
 onMounted(() => {
   const params = new URLSearchParams(window.location.search);
-  const userId = params.get('id');
-  const socket = io(window.location.host, {query: {id: userId}});
+  const userId = params.get('userId');
+  const socket = io(window.location.host, {query: {userId}});
   if (socket.connected) {
     onConnect();
   }
@@ -31,7 +31,18 @@ onMounted(() => {
       }
     })
     socket.on('user disconnected', (disconnectedUser) => {
-      currentUsers.value = currentUsers.value.filter(user => user.id !== disconnectedUser.id);
+      currentUsers.value.delete(disconnectedUser.userId);
+    })
+    socket.on('received-message', (latestMessage, fromUserId) => {
+      currentUsers.value = [ ...currentUsers.value.map(u => {
+        if (u.userId === fromUserId) {
+          return {
+            ...u,
+            latestMessage
+          }
+        }
+        return u
+      }) ];
     })
   }
 
@@ -42,8 +53,8 @@ function handleClick() {
   window.parent.postMessage({message: 'toggle dashboard', source: 'chatify'}, '*');
 }
 
-function createNewSingleChat(props) {
-  window.parent.postMessage({message: 'create new single chat', source: 'chatify', props}, '*');
+function createNewSingleChat(uid, fid) {
+  window.parent.postMessage({message: 'create new single chat', source: 'chatify', uid, fid}, '*');
 }
 
 
@@ -51,7 +62,7 @@ function createNewSingleChat(props) {
 <template>
   <div class="container">
     <Header :handle-click="handleClick" :is-open="isOpen" :title="me?.name"/>
-    <Contact v-for="user in currentUsers" :name="user.name" @chat-clicked="createNewSingleChat"/>
+    <Contact v-for="user in currentUsers" :latestMessage="user.latestMessage" :name="user.name" @click="createNewSingleChat(me?.userId, user.userId)"/>
   </div>
 </template>
 <style>

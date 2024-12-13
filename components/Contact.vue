@@ -1,23 +1,13 @@
 <script setup>
 import Avatar from '../components/Avatar.vue';
 
-const FAUX_ID = Math.random();
-const EMIT_CHAT_CLICKED = 'chatClicked';
-
 const {name} = defineProps({
-  name: String
-})
-
-const emits = defineEmits([ EMIT_CHAT_CLICKED ]);
-
-function handleChatClick(e) {
-  e.stopPropagation();
-  emits(EMIT_CHAT_CLICKED, {id: FAUX_ID, name});
-}
-
+  name: String,
+  latestMessage: String
+});
 </script>
 <template>
-  <article @click="handleChatClick">
+  <article>
     <aside>
       <Avatar/>
     </aside>
@@ -26,9 +16,9 @@ function handleChatClick(e) {
         <span>{{ name }}</span>
         <time>Yesterday</time>
       </div>
-      <div>
-        Lorem Ipsum is simply dummy text of the.
-      </div>
+      <p>
+        {{ latestMessage || 'No new messages.' }}
+      </p>
     </section>
   </article>
 </template>
@@ -39,29 +29,33 @@ article {
   padding: 1rem .5rem 0 0;
   cursor: pointer;
 
+  p {
+    margin: 0;
+  }
+
   &:hover {
     background-color: rgba(0, 0, 0, .1)
   }
-}
 
-aside {
-  padding: .5rem;
-}
+  aside {
+    padding: .5rem;
+  }
 
-section {
-  display: flex;
-  flex-direction: column;
-  gap: .3rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(0, 0, 0, .1);
-}
+  section {
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(0, 0, 0, .1);
 
-section > *:first-child {
-  display: flex;
-  justify-content: space-between;
-}
+    & > *:first-child {
+      display: flex;
+      justify-content: space-between;
+    }
+  }
 
-time {
-  color: rgba(0, 0, 0, 0.4);
+  time {
+    color: rgba(0, 0, 0, 0.4);
+  }
 }
 </style>

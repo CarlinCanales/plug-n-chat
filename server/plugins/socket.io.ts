@@ -15,24 +15,32 @@ export default defineNitroPlugin((nitroApp: NitroApp) => {
     const engine = new Engine();
     const io = new Server();
 
-    const currentUsers: Map<string, { userId: string, name: string, isConnected: boolean }> = new Map();
+    const currentUsers: Map<string, { socketId: string[], userId: string, name: string, isConnected: boolean }> = new Map();
 
     io.bind(engine);
 
     io.on("connection", (socket) => {
         io.emit('current users', Array.from(currentUsers, ([_, value]) => value));
+        const userId = socket.handshake.query.userId as string;
 
-        const userId = socket.handshake.query.id as string;
         if (userId && currentUsers.has(userId)) {
-            io.emit('new user', currentUsers.get(userId));
+            const currentUser = currentUsers.get(userId);
+            currentUser?.socketId.push(socket.id);
+            io.emit('new user', currentUser);
         } else {
-            const newUser = {userId, isConnected: true, name: getRandomName()};
+            const newUser = {socketId: [socket.id], userId, isConnected: true, name: getRandomName()};
             currentUsers.set(newUser.userId, newUser);
             io.emit('new user', newUser);
         }
 
-        socket.on('message', (message) => {
-            socket.broadcast.emit('received-message', message);
+        socket.on('get friend', friendId => {
+            const friend = currentUsers.get(friendId);
+            socket.emit('receive friend', friend);
+        })
+
+        socket.on('message', (message: string, userId: string, friendId: string) => {
+            const friendSocketIds = currentUsers.get(friendId)?.socketId;
+            socket.to(friendSocketIds || []).emit('received-message', message, userId, friendId);
         })
     });
 

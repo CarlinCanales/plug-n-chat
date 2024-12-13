@@ -2,41 +2,55 @@
 import { io } from "socket.io-client";
 import Header from "~/components/Header.vue";
 
-const socket = io();
+const socketRef = ref(null);
 const isConnected = ref(false);
 const transport = ref("N/A");
-const id = ref(0);
+const friendId = ref(null);
+const friend = ref(null);
+const userId = ref(null);
 const messages = ref([]);
 const inputRef = ref(null);
 
 onMounted(() => {
-  id.value = getParam('id');
+  const socket = io(window.location.host, {query: {userId: getParam('userId')}});
+  socketRef.value = socket;
+  friendId.value = getParam('friendId');
+  userId.value = getParam('userId');
+
+  if (socket.connected) {
+    onConnect();
+  }
+
+  socket.on("connect", onConnect);
+  socket.on("disconnect", onDisconnect);
+
+  function onConnect() {
+    isConnected.value = true;
+    transport.value = socket.io.engine.transport.name;
+
+    socket.io.engine.on("upgrade", (rawTransport) => {
+      transport.value = rawTransport.name;
+    });
+
+    socket.on('receive friend', user => {
+      friend.value = user;
+    })
+
+    socket.on('received-message', (message, fromFriendId) => {
+      if (fromFriendId === friend.value.userId) {
+        messages.value.push({received: true, message});
+      }
+    })
+
+  }
+
+  function onDisconnect() {
+    isConnected.value = false;
+    transport.value = "N/A";
+  }
+
+  socket.emit('get friend', friendId.value);
 })
-
-if (socket.connected) {
-  onConnect();
-}
-
-socket.on("connect", onConnect);
-socket.on("disconnect", onDisconnect);
-
-function onConnect() {
-  isConnected.value = true;
-  transport.value = socket.io.engine.transport.name;
-
-  socket.io.engine.on("upgrade", (rawTransport) => {
-    transport.value = rawTransport.name;
-  });
-  socket.on('received-message', (message) => {
-    console.log('received message', message);
-    messages.value.push({received: true, message});
-  })
-}
-
-function onDisconnect() {
-  isConnected.value = false;
-  transport.value = "N/A";
-}
 
 
 function getParam(param) {
@@ -45,28 +59,23 @@ function getParam(param) {
 }
 
 function handleClick() {
-  window.parent.postMessage({message: 'toggle chat', source: 'chatify', id: id.value}, '*');
+  window.parent.postMessage({message: 'toggle chat', source: 'chatify', id: friendId.value}, '*');
 }
 
 function handleClose() {
-  window.parent.postMessage({message: 'close chat', source: 'chatify', id: id.value}, '*');
+  window.parent.postMessage({message: 'close chat', source: 'chatify', id: friendId.value}, '*');
 }
 
 function sendMessage() {
-  console.log('seding message');
   messages.value.push({received: false, message: inputRef.value.value});
-  socket.emit('message', inputRef.value.value);
+  socketRef.value.emit('message', inputRef.value.value, userId.value, friendId.value);
+  inputRef.value.value = '';
 }
-
-onBeforeUnmount(() => {
-  socket.off("connect", onConnect);
-  socket.off("disconnect", onDisconnect);
-});
 
 </script>
 <template>
   <section>
-    <Header :handle-close="handleClose" use-close :handle-click="handleClick" title="Single Chat"/>
+    <Header :handle-close="handleClose" use-close :handle-click="handleClick" :title="'Chat with' + ' - ' + friend?.name"/>
     <div>
       <ul>
         <li :class="{'left': message.received, 'right': !message.received}" v-for="message in messages">
