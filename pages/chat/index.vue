@@ -12,7 +12,7 @@ const messages = ref([]);
 const inputRef = ref(null);
 
 onMounted(() => {
-  const socket = io(window.location.host, {query: {userId: getParam('userId')}});
+  const socket = io(window.location.host, {query: {friendId: getParam('friendId'), userId: getParam('userId')}});
   socketRef.value = socket;
   friendId.value = getParam('friendId');
   userId.value = getParam('userId');
@@ -32,13 +32,19 @@ onMounted(() => {
       transport.value = rawTransport.name;
     });
 
+    socket.on('room messages', (allMessages, uid, fid) => {
+      if (uid === userId.value && fid === friendId.value) {
+        messages.value = allMessages.reverse();
+      }
+    });
+
     socket.on('receive friend', user => {
       friend.value = user;
     })
 
-    socket.on('received-message', (message, fromFriendId) => {
+    socket.on('received message', (receivedMessage, fromFriendId) => {
       if (fromFriendId === friend.value.userId) {
-        messages.value.push({received: true, message});
+        messages.value.unshift(receivedMessage);
       }
     })
 
@@ -67,18 +73,20 @@ function handleClose() {
 }
 
 function sendMessage() {
-  messages.value.push({received: false, message: inputRef.value.value});
+  messages.value.unshift({userId, message: inputRef.value.value});
   socketRef.value.emit('message', inputRef.value.value, userId.value, friendId.value);
   inputRef.value.value = '';
 }
 
+const friendName = computed(() => friend?.value?.name || 'Connecting...')
+
 </script>
 <template>
   <section>
-    <Header :handle-close="handleClose" use-close :handle-click="handleClick" :title="'Chat with' + ' - ' + friend?.name"/>
+    <Header :handle-close="handleClose" use-close :handle-click="handleClick" :title="friendName"/>
     <div>
       <ul>
-        <li :class="{'left': message.received, 'right': !message.received}" v-for="message in messages">
+        <li :class="{'left': message.userId !== userId, 'right': message.userId === userId}" v-for="message in messages">
           <div>{{ message.message }}</div>
         </li>
       </ul>
@@ -106,12 +114,15 @@ section {
 
   & > :not(:first-child, :last-child) {
     flex-grow: 1;
+    overflow: auto;
   }
 }
 
 ul {
   padding: 0;
   margin: 0;
+  display: flex;
+  flex-direction: column-reverse;
 }
 
 li {

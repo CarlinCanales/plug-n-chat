@@ -19,6 +19,7 @@ onMounted(() => {
     socket.on('current users', (users) => {
       currentUsers.value = [ ...users.filter(user => user.userId !== userId) ];
     })
+
     socket.on('new user', (newUser) => {
       const isMe = newUser.userId === userId;
       if (isMe) {
@@ -30,15 +31,26 @@ onMounted(() => {
         currentUsers.value.push(newUser);
       }
     })
+
     socket.on('user disconnected', (disconnectedUser) => {
       currentUsers.value.delete(disconnectedUser.userId);
     })
-    socket.on('received-message', (latestMessage, fromUserId) => {
+
+    socket.on('latest messages', latestMessages => {
+      if (latestMessages.length > 0) {
+        latestMessages.forEach(m => {
+          const u = currentUsers.value.find(cu => cu.userId === m.friendId || cu.userId === m.userId);
+          u && (u.latestMessage = m.message);
+        })
+      }
+    })
+
+    socket.on('received message', (message, fromUserId) => {
       currentUsers.value = [ ...currentUsers.value.map(u => {
         if (u.userId === fromUserId) {
           return {
             ...u,
-            latestMessage
+            latestMessage: message.message
           }
         }
         return u
