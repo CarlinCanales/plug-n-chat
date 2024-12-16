@@ -10,7 +10,6 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@kikiutils/nitro-session": "^2.0.2",
     "@nuxt/icon": "^1.8.2",
     "nuxt": "^3.14.1592",
     "socket.io": "^4.8.1",
