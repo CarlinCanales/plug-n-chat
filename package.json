@@ -15,7 +15,8 @@
     "start": "node .output/server/index.mjs"
   },
   "optionalDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "4.6.1"
+    "@rollup/rollup-linux-x64-gnu": "4.6.1",
+    "sass-embedded-linux-x64": "1.83.0"
   },
   "dependencies": {
     "@nuxt/icon": "^1.8.2",
