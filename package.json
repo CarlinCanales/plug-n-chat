@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": "20.11.1"
+    "node": "20.11.1",
+    "npm": "10.2.4"
   },
   "scripts": {
     "build": "nuxt build",
@@ -12,6 +13,9 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "start": "node .output/server/index.mjs"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "4.6.1"
   },
   "dependencies": {
     "@nuxt/icon": "^1.8.2",
